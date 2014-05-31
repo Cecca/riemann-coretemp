@@ -19,3 +19,9 @@ Requirements
 
         # configuration
         sensors-detect
+
+Running
+-------
+
+    ./riemann-coretemp
+
