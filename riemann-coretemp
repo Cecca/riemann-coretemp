@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+require 'riemann/tools'
+
+class Riemann::Tools::Coretemp
+  include Riemann::Tools
+
+  def temperature
+    `sensors`.split("\n\n").inject({}) do |s, desc|
+      desc =~ /.*Adapter: (.+)\n.*/
+      adapter = $1
+      desc.split("\n").each do |l|
+        if l =~ /(.+):\s+(\+\d+.\d+).+(?:high|crit) = (\+\d+.\d+).*/
+          service = "#{adapter} #{$1}"
+          t = Float($2)
+          high = Float($3)
+          s[service] = {metric: t,
+                       state:  t < high ? "ok" : "critical"}
+        end
+      end
+      s
+    end
+  end
+
+  def tick
+    temperature.each do |service, temp|
+      report(:service => "coretemp #{service}",
+             :metric => temp[:metric],
+             :state => temp[:state]
+            )
+    end
+  end
+
+end
+
+Riemann::Tools::Coretemp.run
